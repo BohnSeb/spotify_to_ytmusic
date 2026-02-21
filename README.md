@@ -210,6 +210,8 @@ Run: `python3 spotify_backup.py playlists.json --dump=liked,playlists --format=j
 
 This will save your playlists and liked songs into the file "playlists.json".
 
+**If backup fails (e.g. unsupported_response_type, 401, 403):** The backup uses Spotify’s **Authorization Code with PKCE** flow. Use your own app: go to [Spotify for Developers](https://developer.spotify.com/dashboard), create an app, add the redirect URI **`http://127.0.0.1:43019/redirect`** (exactly), then set `SPOTIFY_CLIENT_ID` or create `spotify_client.json` with `{"client_id": "YOUR_CLIENT_ID"}`. No client secret is required for PKCE.
+
 ### Import Your Liked Songs
 
 Run: `s2yt_load_liked`

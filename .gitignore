@@ -173,5 +173,7 @@ cython_debug/
 # sensitive info
 oauth.json
 ytmusic_client.json
+spotify_client.json
+spotify_credentials.json
 raw_headers.txt
 playlists.json

@@ -8,6 +8,11 @@ import re
 
 from ytmusicapi import YTMusic
 from typing import Optional, Union, Iterator, Dict, List
+
+try:
+    from ytmusicapi.exceptions import YTMusicUserError
+except ImportError:
+    YTMusicUserError = Exception  # type: ignore[misc, assignment]
 from collections import namedtuple
 from dataclasses import dataclass, field
 
@@ -82,6 +87,13 @@ def get_ytmusic() -> YTMusic:
         if oauth_creds is not None:
             return YTMusic("oauth.json", oauth_credentials=oauth_creds)
         return YTMusic("oauth.json")
+    except YTMusicUserError as e:
+        if "oauth_credentials" in str(e).lower() or "OAuthCredentials" in str(e):
+            print("ERROR: This ytmusicapi version requires OAuth client ID and secret.")
+            print("       Create ytmusic_client.json with client_id and client_secret,")
+            print("       or set YTMUSIC_CLIENT_ID and YTMUSIC_CLIENT_SECRET. See README.")
+            sys.exit(1)
+        raise
     except (TypeError, ValueError) as e:
         if "oauth_credentials" in str(e).lower() or "OAuthCredentials" in str(e):
             print("ERROR: This ytmusicapi version requires OAuth client ID and secret.")
