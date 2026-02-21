@@ -170,6 +170,19 @@ def create_app():
     def yt_login_required():
         return jsonify({"required": not os.path.exists(os.path.join(ROOT, "oauth.json"))})
 
+    @app.route("/api/credentials")
+    def credentials():
+        """Check if oauth.json exists and if OAuth client credentials are available (env, ytmusic_client.json, or default_ytmusic_client.json)."""
+        from . import backend
+        oauth_path = os.path.join(ROOT, "oauth.json")
+        client_id, client_secret = backend.get_oauth_client_id_secret()
+        has_client = bool(client_id and client_secret)
+        return jsonify({
+            "has_oauth": os.path.isfile(oauth_path),
+            "has_ytmusic_client": has_client,
+            "project_root": ROOT,
+        })
+
     return app
 
 
@@ -328,12 +341,28 @@ def _html():
       color: var(--textMuted);
     }
     footer a { color: var(--accent); text-decoration: none; }
+    .warning-card {
+      border-color: var(--danger);
+      background: rgba(239, 68, 68, 0.08);
+    }
+    .warning-card h2 { color: var(--danger); }
+    .warning-card code { background: var(--surface2); padding: 0.2em 0.4em; border-radius: 4px; }
   </style>
 </head>
 <body>
   <div class="layout">
     <h1>Spotify → YT Music</h1>
     <p class="subtitle">Backup playlists and liked songs, then copy them to YouTube Music.</p>
+
+    <div class="card" id="credentials-warning" style="display: none;">
+      <h2>OAuth client ID and secret needed</h2>
+      <p>YT Music OAuth requires a client ID and secret. If the project does not ship a default, create a file <strong>ytmusic_client.json</strong> in the project directory:</p>
+      <pre style="background: var(--surface2); padding: 1rem; border-radius: var(--radiusSm); overflow-x: auto; font-size: 0.85rem;">{
+  "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+  "client_secret": "YOUR_CLIENT_SECRET"
+}</pre>
+      <p>Get the values from <a href="https://developers.google.com/youtube/registering_an_application" target="_blank" rel="noopener">Google Cloud Console</a>: create an OAuth client ID, type <strong>TVs and Limited Input devices</strong>. When your login expires, run <code>python -m spotify2ytmusic ytoauth</code> again to log in with Google; you do not need new client ID/secret.</p>
+    </div>
 
     <div class="card">
       <h2>1. YouTube Music</h2>
@@ -486,6 +515,9 @@ def _html():
     fetch('/api/settings').then(r => r.json()).then(s => {
       const algo = document.getElementById('algo');
       if (s.algo_number >= 0 && s.algo_number <= 2) algo.value = String(s.algo_number);
+    });
+    fetch('/api/credentials').then(r => r.json()).then(d => {
+      if (!d.has_ytmusic_client) document.getElementById('credentials-warning').style.display = 'block';
     });
     poll();
   </script>

@@ -84,7 +84,9 @@ python -m ytmusicapi oauth
 
 A browser window will open; sign in with your Google/YouTube Music account. When finished, `oauth.json` will be created in the current directory.
 
-**That is enough:** If you have `oauth.json` (e.g. from running `ytmusicapi oauth`), you do **not** need to create a separate file with client ID and client secret. The app uses `oauth.json` alone. Only if you see an error that OAuth credentials are required (e.g. with some newer ytmusicapi/YouTube setups), add client credentials as described under "If the app asks for OAuth client ID and secret" below.
+**OAuth client ID and secret:** Current ytmusicapi/YouTube Music requires a client ID and secret for OAuth (for both login and token refresh). You do **not** need to create your own if the project ships a built-in default (`default_ytmusic_client.json` in the package). In that case, run `python -m spotify2ytmusic ytoauth` and you’re done. If the app reports that OAuth credentials are missing, use one of the options below.
+
+**When your login expires:** You can simply run `python -m spotify2ytmusic ytoauth` again and log in with Google again. You do not need new client ID/secret; the same (default or your own) file is used.
 
 **Important**: After `oauth.json` exists, the GUI will automatically use it and you'll see:
 
@@ -96,6 +98,8 @@ The GUI will **ignore the 'Login to YT Music' tab** and go straight to the 'Spot
 
 **If the app asks for OAuth client ID and secret** (e.g. error about `oauth_credentials` or "OAuth client ID and secret"):
 
+The app looks for credentials in this order: environment variables → `ytmusic_client.json` → `default_ytmusic_client.json` (in the package or project root). If no default is shipped, create your own:
+
 1. Open [YouTube Data API – Registering an application](https://developers.google.com/youtube/registering_an_application).
 2. Use (or create) a project in Google Cloud Console, create an **OAuth client ID**, choose **"TVs and Limited Input devices"**, and copy the **Client ID** and **Client secret**.
 3. Create a file `ytmusic_client.json` in the project root with:
@@ -103,6 +107,8 @@ The GUI will **ignore the 'Login to YT Music' tab** and go straight to the 'Spot
    { "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com", "client_secret": "YOUR_CLIENT_SECRET" }
    ```
    (or copy `ytmusic_client.json.example` and fill in your values). Alternatively, set environment variables `YTMUSIC_CLIENT_ID` and `YTMUSIC_CLIENT_SECRET`.
+
+**Maintainers:** To give users zero-setup (no Google Cloud project needed), create one OAuth client (TVs and Limited Input) in Google Cloud, then fill in `spotify2ytmusic/default_ytmusic_client.json` with that `client_id` and `client_secret`. Once that file contains valid credentials, all users can run `ytoauth` without creating their own.
 
 ---
 

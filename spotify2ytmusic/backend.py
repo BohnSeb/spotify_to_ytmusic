@@ -21,6 +21,79 @@ SongInfo = namedtuple("SongInfo", ["title", "artist", "album"])
 
 # Optional OAuth credentials (required by ytmusicapi as of Nov 2024 for OAuth flow)
 _OAUTH_CREDENTIALS_FILE = "ytmusic_client.json"
+# Built-in default so users don't need to create their own Google Cloud project (optional; maintainer can add)
+_DEFAULT_OAUTH_FILE = "default_ytmusic_client.json"
+
+
+def _oauth_credentials_paths():
+    """Yield paths where ytmusic_client.json may be located (cwd, then dir of oauth.json, then package root)."""
+    yield os.path.join(os.getcwd(), _OAUTH_CREDENTIALS_FILE)
+    oauth_path = os.path.join(os.getcwd(), "oauth.json")
+    if os.path.exists(oauth_path):
+        yield os.path.join(os.path.dirname(os.path.abspath(oauth_path)), _OAUTH_CREDENTIALS_FILE)
+    try:
+        pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        yield os.path.join(pkg_root, _OAUTH_CREDENTIALS_FILE)
+    except Exception:
+        pass
+
+
+def _default_oauth_paths():
+    """Yield paths for built-in default OAuth client (package dir, then cwd). Used so users don't need their own client."""
+    try:
+        pkg_dir = os.path.dirname(os.path.abspath(__file__))
+        yield os.path.join(pkg_dir, _DEFAULT_OAUTH_FILE)
+    except Exception:
+        pass
+    yield os.path.join(os.getcwd(), _DEFAULT_OAUTH_FILE)
+    oauth_path = os.path.join(os.getcwd(), "oauth.json")
+    if os.path.exists(oauth_path):
+        yield os.path.join(os.path.dirname(os.path.abspath(oauth_path)), _DEFAULT_OAUTH_FILE)
+    try:
+        pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        yield os.path.join(pkg_root, _DEFAULT_OAUTH_FILE)
+    except Exception:
+        pass
+
+
+def _read_oauth_client_file():
+    """Return (client_id, client_secret) from ytmusic_client.json, default_ytmusic_client.json, or oauth.json, or (None, None)."""
+    for path in _oauth_credentials_paths():
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                cid = data.get("client_id") or data.get("client_id_android")
+                csec = data.get("client_secret") or data.get("client_secret_android")
+                if cid and csec:
+                    return (cid, csec)
+            except (json.JSONDecodeError, OSError):
+                pass
+    for path in _default_oauth_paths():
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                cid = data.get("client_id") or data.get("client_id_android")
+                csec = data.get("client_secret") or data.get("client_secret_android")
+                if cid and csec:
+                    return (cid, csec)
+            except (json.JSONDecodeError, OSError):
+                pass
+    # Fallback: some setups store client_id/secret inside oauth.json (ytmusicapi itself does not)
+    oauth_path = os.path.join(os.getcwd(), "oauth.json")
+    if not os.path.isfile(oauth_path):
+        return (None, None)
+    try:
+        with open(oauth_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        cid = data.get("client_id") or data.get("client_id_android")
+        csec = data.get("client_secret") or data.get("client_secret_android")
+        if cid and csec:
+            return (cid, csec)
+    except (json.JSONDecodeError, OSError):
+        pass
+    return (None, None)
 
 
 def get_oauth_client_id_secret():
@@ -32,17 +105,7 @@ def get_oauth_client_id_secret():
     client_secret = os.environ.get("YTMUSIC_CLIENT_SECRET")
     if client_id and client_secret:
         return (client_id, client_secret)
-    if os.path.exists(_OAUTH_CREDENTIALS_FILE):
-        try:
-            with open(_OAUTH_CREDENTIALS_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            cid = data.get("client_id") or data.get("client_id_android")
-            csec = data.get("client_secret") or data.get("client_secret_android")
-            if cid and csec:
-                return (cid, csec)
-        except (json.JSONDecodeError, OSError):
-            pass
-    return (None, None)
+    return _read_oauth_client_file()
 
 
 def _get_oauth_credentials():
@@ -55,16 +118,12 @@ def _get_oauth_credentials():
             return OAuthCredentials(client_id=client_id, client_secret=client_secret)
         except ImportError:
             pass
-    if os.path.exists(_OAUTH_CREDENTIALS_FILE):
+    cid, csec = _read_oauth_client_file()
+    if cid and csec:
         try:
-            with open(_OAUTH_CREDENTIALS_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            cid = data.get("client_id") or data.get("client_id_android")
-            csec = data.get("client_secret") or data.get("client_secret_android")
-            if cid and csec:
-                from ytmusicapi import OAuthCredentials
-                return OAuthCredentials(client_id=cid, client_secret=csec)
-        except (json.JSONDecodeError, ImportError, OSError):
+            from ytmusicapi import OAuthCredentials
+            return OAuthCredentials(client_id=cid, client_secret=csec)
+        except ImportError:
             pass
     return None
 
@@ -90,15 +149,15 @@ def get_ytmusic() -> YTMusic:
     except YTMusicUserError as e:
         if "oauth_credentials" in str(e).lower() or "OAuthCredentials" in str(e):
             print("ERROR: This ytmusicapi version requires OAuth client ID and secret.")
-            print("       Create ytmusic_client.json with client_id and client_secret,")
-            print("       or set YTMUSIC_CLIENT_ID and YTMUSIC_CLIENT_SECRET. See README.")
+            print("       Use ytmusic_client.json or default_ytmusic_client.json (see README),")
+            print("       or set YTMUSIC_CLIENT_ID and YTMUSIC_CLIENT_SECRET. When token expires, run ytoauth again.")
             sys.exit(1)
         raise
     except (TypeError, ValueError) as e:
         if "oauth_credentials" in str(e).lower() or "OAuthCredentials" in str(e):
             print("ERROR: This ytmusicapi version requires OAuth client ID and secret.")
-            print("       Create ytmusic_client.json with client_id and client_secret,")
-            print("       or set YTMUSIC_CLIENT_ID and YTMUSIC_CLIENT_SECRET. See README.")
+            print("       Use ytmusic_client.json or default_ytmusic_client.json (see README),")
+            print("       or set YTMUSIC_CLIENT_ID and YTMUSIC_CLIENT_SECRET. When token expires, run ytoauth again.")
             sys.exit(1)
         raise
     except json.decoder.JSONDecodeError as e:
