@@ -82,10 +82,11 @@ def _run_task(task, spotify_id="", yt_id="", algo=None):
 
     def run():
         try:
+            env_unbuf = {**env, "PYTHONUNBUFFERED": "1"}
             proc = subprocess.Popen(
                 cmd,
                 cwd=cwd,
-                env=env,
+                env=env_unbuf,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -93,7 +94,7 @@ def _run_task(task, spotify_id="", yt_id="", algo=None):
                 errors="replace",
                 bufsize=1,
             )
-            for line in proc.stdout:
+            for line in iter(proc.stdout.readline, ""):
                 with _job_lock:
                     _job["log"].append(line.rstrip())
             proc.wait()
@@ -461,7 +462,7 @@ def _html():
           logEl.textContent = data.log || '';
           if (data.log) logEl.scrollTop = logEl.scrollHeight;
           if (data.running) {
-            setTimeout(poll, 500);
+            setTimeout(poll, 200);
             document.querySelectorAll('.btn').forEach(b => b.disabled = true);
             return;
           }
