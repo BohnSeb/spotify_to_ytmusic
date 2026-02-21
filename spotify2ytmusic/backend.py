@@ -18,6 +18,28 @@ SongInfo = namedtuple("SongInfo", ["title", "artist", "album"])
 _OAUTH_CREDENTIALS_FILE = "ytmusic_client.json"
 
 
+def get_oauth_client_id_secret():
+    """
+    Return (client_id, client_secret) from env or ytmusic_client.json, or (None, None).
+    Used to pass credentials to ytmusicapi oauth so it does not prompt.
+    """
+    client_id = os.environ.get("YTMUSIC_CLIENT_ID")
+    client_secret = os.environ.get("YTMUSIC_CLIENT_SECRET")
+    if client_id and client_secret:
+        return (client_id, client_secret)
+    if os.path.exists(_OAUTH_CREDENTIALS_FILE):
+        try:
+            with open(_OAUTH_CREDENTIALS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            cid = data.get("client_id") or data.get("client_id_android")
+            csec = data.get("client_secret") or data.get("client_secret_android")
+            if cid and csec:
+                return (cid, csec)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return (None, None)
+
+
 def _get_oauth_credentials():
     """Load optional OAuth client_id/client_secret from env or ytmusic_client.json."""
     client_id = os.environ.get("YTMUSIC_CLIENT_ID")

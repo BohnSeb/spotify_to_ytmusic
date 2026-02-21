@@ -341,24 +341,38 @@ def gui():
 def ytoauth():
     """
     Run the ytmusicapi OAuth login in a subprocess. Creates oauth.json in the current directory.
-    Uses the installed console script so ytmusicapi runs in its own process (avoids relative import errors).
+    Skips if oauth.json already exists. Passes client_id/secret from ytmusic_client.json or env if present.
     """
+    # Check if already logged in
+    if os.path.exists("oauth.json"):
+        print("oauth.json already exists. You are already logged in.")
+        print("Delete oauth.json if you want to log in again.")
+        sys.exit(0)
+
+    # Build args: pass --client-id and --client-secret if we have them so ytmusicapi does not prompt
+    client_id, client_secret = backend.get_oauth_client_id_secret()
+    oauth_args = ["oauth"]
+    if client_id and client_secret:
+        oauth_args.extend(["--client-id", client_id, "--client-secret", client_secret])
+
+    def run_oauth(script_path):
+        result = subprocess.run([script_path] + oauth_args)
+        sys.exit(result.returncode)
+
     # Run the installed "ytmusicapi" console script by full path (same Python env as us)
     if sys.platform == "win32":
         for name in ("ytmusicapi.exe", "ytmusicapi"):
             script = os.path.join(sys.prefix, "Scripts", name)
             if os.path.isfile(script):
-                result = subprocess.run([script, "oauth"])
-                sys.exit(result.returncode)
+                run_oauth(script)
     else:
         script = os.path.join(sys.prefix, "bin", "ytmusicapi")
         if os.path.isfile(script):
-            result = subprocess.run([script, "oauth"])
-            sys.exit(result.returncode)
+            run_oauth(script)
     # Fallback: try "ytmusicapi" in PATH (e.g. if installed with --user)
     try:
         result = subprocess.run(
-            ["ytmusicapi", "oauth"],
+            ["ytmusicapi"] + oauth_args,
             shell=(sys.platform == "win32"),
         )
         sys.exit(result.returncode)
