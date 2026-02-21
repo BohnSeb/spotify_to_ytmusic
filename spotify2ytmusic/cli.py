@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import os
 import sys
+import subprocess
 from argparse import ArgumentParser
 import pprint
 
@@ -338,9 +340,30 @@ def gui():
 
 def ytoauth():
     """
-    Run the "ytmusicapi oauth" login.
+    Run the ytmusicapi OAuth login in a subprocess. Creates oauth.json in the current directory.
+    Uses the installed console script so ytmusicapi runs in its own process (avoids relative import errors).
     """
-    from ytmusicapi.setup import main
-
-    sys.argv = ["ytmusicapi", "oauth"]
-    sys.exit(main())
+    # Run the installed "ytmusicapi" console script by full path (same Python env as us)
+    if sys.platform == "win32":
+        for name in ("ytmusicapi.exe", "ytmusicapi"):
+            script = os.path.join(sys.prefix, "Scripts", name)
+            if os.path.isfile(script):
+                result = subprocess.run([script, "oauth"])
+                sys.exit(result.returncode)
+    else:
+        script = os.path.join(sys.prefix, "bin", "ytmusicapi")
+        if os.path.isfile(script):
+            result = subprocess.run([script, "oauth"])
+            sys.exit(result.returncode)
+    # Fallback: try "ytmusicapi" in PATH (e.g. if installed with --user)
+    try:
+        result = subprocess.run(
+            ["ytmusicapi", "oauth"],
+            shell=(sys.platform == "win32"),
+        )
+        sys.exit(result.returncode)
+    except FileNotFoundError:
+        print("ERROR: Could not run OAuth login.", file=sys.stderr)
+        print("       Install ytmusicapi: pip install ytmusicapi", file=sys.stderr)
+        print("       Then run from the project directory: ytmusicapi oauth", file=sys.stderr)
+        sys.exit(1)

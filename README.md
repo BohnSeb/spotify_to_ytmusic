@@ -52,42 +52,72 @@ pip install ytmusicapi tk
 
 ---
 
-#### 2. Generate YouTube Music Credentials
+#### 2. YouTube Music Credentials (OAuth – recommended)
 
-To use the YouTube Music API, you need to generate valid credentials. Follow these steps:
+The recommended way to log in to YouTube Music is **OAuth**: you run a small script, sign in with your Google account in the browser, and an `oauth.json` file is created. No copying of request headers from the browser is needed.
 
-1. **Log in to YouTube Music**: Open YouTube Music in Firefox and ensure you are logged in.
-2. **Open the Inspection Tool**: Press `F12` or right-click and select _Inspect_ to open the browser's inspection tool.
-3. **Access the Network Tab**: Navigate to the Network tab and filter by `/browse`.
-4. **Select a Request**: Click one of the requests under the filtered results and locate the _Request Headers_ section.
-5. **Toggle RAW View**: Click the RAW toggle button to view the headers in raw format.
-6. **Copy Headers**: Right-click, choose _Select All_, and copy the content.
-7. **Paste into `raw_headers.txt`**: Open the `raw_headers.txt` file located in the main directory of this project and paste the copied content into it.
+**Run the OAuth login**
 
-**Run the Script**:
-
-Execute the following command to generate the credentials file:
+From the project directory, run:
 
 On Windows:
 
 ```bash
-python spotify2ytmusic/ytmusic_credentials.py
+s2yt_ytoauth
 ```
+
+Or: `python -m spotify2ytmusic ytoauth`
 
 On Linux or Mac:
 
 ```bash
-python3 spotify2ytmusic/ytmusic_credentials.py
+s2yt_ytoauth
 ```
 
-**Important**: After running this script, the authentication file will be created.
-When you launch the GUI in the next step, it will automatically detect this file and log in to YouTube Music without requiring manual input. You’ll see a log message confirming this:
+Or: `python3 -m spotify2ytmusic ytoauth`
+
+If `s2yt_ytoauth` is not found (e.g. before installing the package), or if `python -m spotify2ytmusic ytoauth` fails, run this directly from the project directory:
+
+```bash
+python -m ytmusicapi oauth
+```
+
+A browser window will open; sign in with your Google/YouTube Music account. When finished, `oauth.json` will be created in the current directory.
+
+**That is enough:** If you have `oauth.json` (e.g. from running `ytmusicapi oauth`), you do **not** need to create a separate file with client ID and client secret. The app uses `oauth.json` alone. Only if you see an error that OAuth credentials are required (e.g. with some newer ytmusicapi/YouTube setups), add client credentials as described under "If the app asks for OAuth client ID and secret" below.
+
+**Important**: After `oauth.json` exists, the GUI will automatically use it and you'll see:
 
 ```
 File detected, auto login
 ```
 
-The GUI will **ignore the 'Login to YT Music' tab** and jump straight to the 'Spotify Backup' tab.
+The GUI will **ignore the 'Login to YT Music' tab** and go straight to the 'Spotify Backup' tab.
+
+**If the app asks for OAuth client ID and secret** (e.g. error about `oauth_credentials` or "OAuth client ID and secret"):
+
+1. Open [YouTube Data API – Registering an application](https://developers.google.com/youtube/registering_an_application).
+2. Use (or create) a project in Google Cloud Console, create an **OAuth client ID**, choose **"TVs and Limited Input devices"**, and copy the **Client ID** and **Client secret**.
+3. Create a file `ytmusic_client.json` in the project root with:
+   ```json
+   { "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com", "client_secret": "YOUR_CLIENT_SECRET" }
+   ```
+   (or copy `ytmusic_client.json.example` and fill in your values). Alternatively, set environment variables `YTMUSIC_CLIENT_ID` and `YTMUSIC_CLIENT_SECRET`.
+
+---
+
+**Alternative: Browser headers (if OAuth does not work for you)**
+
+If you cannot use OAuth (e.g. no Google Cloud project), you can use the older method. Follow these steps:
+
+1. Log in to [YouTube Music](https://music.youtube.com) in Firefox.
+2. Open DevTools (F12) → Network tab, filter by `browse`.
+3. Trigger a request (e.g. click around in YT Music), then select a `/browse` request.
+4. In Request Headers, switch to **RAW** view, copy all, and paste into `raw_headers.txt` in the project root.
+5. Run: `python spotify2ytmusic/ytmusic_credentials.py` (or `python3` on Linux/Mac.)
+
+
+This creates `oauth.json` from the copied headers. This method can stop working when YouTube changes their frontend or headers.
 
 ---
 
@@ -170,7 +200,7 @@ example: `s2yt_load_liked` becomes `python -j spotify2ytmusic load_liked`
 
 ### Login to YTMusic
 
-See "Generate YouTube Music Credentials" above.
+See "YouTube Music Credentials (OAuth)" in Setup Instructions above.
 
 ### Backup Your Spotify Playlists
 

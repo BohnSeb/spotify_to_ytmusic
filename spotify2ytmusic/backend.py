@@ -14,22 +14,63 @@ from dataclasses import dataclass, field
 
 SongInfo = namedtuple("SongInfo", ["title", "artist", "album"])
 
+# Optional OAuth credentials (required by ytmusicapi as of Nov 2024 for OAuth flow)
+_OAUTH_CREDENTIALS_FILE = "ytmusic_client.json"
+
+
+def _get_oauth_credentials():
+    """Load optional OAuth client_id/client_secret from env or ytmusic_client.json."""
+    client_id = os.environ.get("YTMUSIC_CLIENT_ID")
+    client_secret = os.environ.get("YTMUSIC_CLIENT_SECRET")
+    if client_id and client_secret:
+        try:
+            from ytmusicapi import OAuthCredentials
+            return OAuthCredentials(client_id=client_id, client_secret=client_secret)
+        except ImportError:
+            pass
+    if os.path.exists(_OAUTH_CREDENTIALS_FILE):
+        try:
+            with open(_OAUTH_CREDENTIALS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            cid = data.get("client_id") or data.get("client_id_android")
+            csec = data.get("client_secret") or data.get("client_secret_android")
+            if cid and csec:
+                from ytmusicapi import OAuthCredentials
+                return OAuthCredentials(client_id=cid, client_secret=csec)
+        except (json.JSONDecodeError, ImportError, OSError):
+            pass
+    return None
+
 
 def get_ytmusic() -> YTMusic:
     """
-    @@@
+    Return an authenticated YTMusic instance.
+    Uses oauth.json (from `s2yt_ytoauth` / `ytmusicapi oauth`).
+    If your ytmusicapi version requires OAuth client credentials (Nov 2024+),
+    set YTMUSIC_CLIENT_ID and YTMUSIC_CLIENT_SECRET, or create ytmusic_client.json.
     """
     if not os.path.exists("oauth.json"):
         print("ERROR: No file 'oauth.json' exists in the current directory.")
-        print("       Have you logged in to YTMusic?  Run 'ytmusicapi oauth' to login")
+        print("       Log in with OAuth: run  s2yt_ytoauth  (or  ytmusicapi oauth)")
+        print("       See README section 'YouTube Music Credentials (OAuth)'.")
         sys.exit(1)
 
     try:
+        oauth_creds = _get_oauth_credentials()
+        if oauth_creds is not None:
+            return YTMusic("oauth.json", oauth_credentials=oauth_creds)
         return YTMusic("oauth.json")
+    except (TypeError, ValueError) as e:
+        if "oauth_credentials" in str(e).lower() or "OAuthCredentials" in str(e):
+            print("ERROR: This ytmusicapi version requires OAuth client ID and secret.")
+            print("       Create ytmusic_client.json with client_id and client_secret,")
+            print("       or set YTMUSIC_CLIENT_ID and YTMUSIC_CLIENT_SECRET. See README.")
+            sys.exit(1)
+        raise
     except json.decoder.JSONDecodeError as e:
         print(f"ERROR: JSON Decode error while trying start YTMusic: {e}")
         print("       This typically means a problem with a 'oauth.json' file.")
-        print("       Have you logged in to YTMusic?  Run 'ytmusicapi oauth' to login")
+        print("       Try logging in again: run  s2yt_ytoauth  (or  ytmusicapi oauth)")
         sys.exit(1)
 
 
