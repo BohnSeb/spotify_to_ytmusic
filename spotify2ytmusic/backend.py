@@ -523,10 +523,19 @@ def copier(
             continue
 
         yt_artist_name = "<Unknown>"
-        if "artists" in dst_track and len(dst_track["artists"]) > 0:
-            yt_artist_name = dst_track["artists"][0]["name"]
+        artists = dst_track.get("artists")
+        if artists and isinstance(artists, (list, tuple)) and len(artists) > 0:
+            first = artists[0]
+            if isinstance(first, dict) and "name" in first:
+                yt_artist_name = first["name"]
+            elif isinstance(first, str):
+                yt_artist_name = first
+        album_name_yt = dst_track.get("album")
+        if isinstance(album_name_yt, dict) and "name" in album_name_yt:
+            album_name_yt = album_name_yt["name"]
+        album_name_yt = album_name_yt if album_name_yt else "<Unknown>"
         print(
-            f"  Youtube: {dst_track['title']} - {yt_artist_name} - {dst_track['album'] if 'album' in dst_track else '<Unknown>'}"
+            f"  Youtube: {dst_track.get('title', '<Unknown>')} - {yt_artist_name} - {album_name_yt}"
         )
 
         if dst_track["videoId"] in tracks_added_set:
