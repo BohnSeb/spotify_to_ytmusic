@@ -329,6 +329,13 @@ def copy_all_playlists():
     )
 
 
+def backup():
+    """Run Spotify backup (playlists + liked) to playlists.json."""
+    from . import spotify_backup
+
+    spotify_backup.main(dump="playlists,liked", format="json", file="playlists.json")
+
+
 def gui():
     """
     Run the Spotify2YTMusic GUI.
@@ -336,6 +343,13 @@ def gui():
     from . import gui
 
     gui.main()
+
+
+def webui():
+    """Run the web UI (Flask). Requires: pip install flask."""
+    from .webui import main as webui_main
+
+    webui_main()
 
 
 def ytoauth():

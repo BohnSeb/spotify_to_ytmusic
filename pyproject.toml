@@ -9,6 +9,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 ytmusicapi = "*"
+flask = "*"
 
 [build-system]
 requires = ["poetry-core"]
@@ -25,6 +26,7 @@ s2yt_list_playlists = "spotify2ytmusic.cli:list_playlists"
 s2yt_search = "spotify2ytmusic.cli:search"
 s2yt_list_liked_albums = "spotify2ytmusic.cli:list_liked_albums"
 s2yt_ytoauth = "spotify2ytmusic.cli:ytoauth"
+s2yt_web = "spotify2ytmusic.cli:webui"
 
 [tool.briefcase]
 project_name = "Spotify2YTMusic"

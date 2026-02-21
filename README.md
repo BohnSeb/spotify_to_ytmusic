@@ -121,9 +121,17 @@ This creates `oauth.json` from the copied headers. This method can stop working 
 
 ---
 
-#### 3. Use the GUI for Migration
+#### 3. Use the Web UI or GUI for Migration
 
-Now you can use the graphical user interface (GUI) to migrate your playlists and liked songs to YouTube Music. Start the GUI with the following command:
+**Web UI (recommended)** – Modern browser interface. From the project directory, run:
+
+```bash
+python -m spotify2ytmusic webui
+```
+
+Then open **http://127.0.0.1:5000** in your browser. You can run Spotify backup, load liked songs, list playlists, and copy playlists from one page. Requires `pip install flask` (or install project dependencies with Poetry/pip).
+
+**Classic GUI (tkinter)** – Desktop window with tabs:
 
 On Windows:
 
@@ -139,9 +147,9 @@ python3 -m spotify2ytmusic gui
 
 ---
 
-### GUI Features
+### Web UI / GUI Features
 
-Once the GUI is running, you can:
+Once the Web UI (or classic GUI) is running, you can:
 
 - **Backup Your Spotify Playlists**: Save your playlists and liked songs into the file `playlists.json`.
 - **Load Liked Songs**: Migrate your Spotify liked songs to YouTube Music.
